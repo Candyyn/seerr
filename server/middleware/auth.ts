@@ -37,7 +37,7 @@ export const checkUser: Middleware = async (req, _res, next) => {
         ? getHostname() : '';
 
     const jellyfinserver = new JellyfinAPI(hostname ?? '', token, "");
-    const account = await jellyfinserver.getUsers()
+    const account = await jellyfinserver.getUser()
     const foundUser = await userRepository.findOne({
       where: { jellyfinUserId: account.User.Id },
     });
