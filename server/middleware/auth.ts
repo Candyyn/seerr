@@ -1,10 +1,12 @@
-import { getRepository } from '@server/datasource';
-import { User } from '@server/entity/User';
+import {getRepository} from '@server/datasource';
+import {User} from '@server/entity/User';
 import type {
   Permission,
   PermissionCheckOptions,
 } from '@server/lib/permissions';
-import { getSettings } from '@server/lib/settings';
+import {getSettings} from '@server/lib/settings';
+import JellyfinAPI from "@server/api/jellyfin";
+import {getHostname} from "@server/utils/getHostname";
 
 export const checkUser: Middleware = async (req, _res, next) => {
   const settings = getSettings();
@@ -20,14 +22,43 @@ export const checkUser: Middleware = async (req, _res, next) => {
       userId = Number(req.header('X-API-User'));
     }
 
-    user = await userRepository.findOne({ where: { id: userId } });
+    user = await userRepository.findOne({where: {id: userId}});
   } else if (req.session?.userId) {
     const userRepository = getRepository(User);
 
     user = await userRepository.findOne({
-      where: { id: req.session.userId },
+      where: {id: req.session.userId},
     });
+  } else if (req.header('X-Emby-Token')) {
+    const token = req.header('X-Emby-Token');
+
+    const hostname =
+      settings.jellyfin.ip !== ''
+        ? getHostname() : '';
+
+    const jellyfinserver = new JellyfinAPI(hostname ?? '', token, "");
+    const account = await jellyfinserver.getUsers()
+    const foundUser = await userRepository.findOne({
+      where: { jellyfinUserId: account.User.Id },
+    });
+
+    if (account.User.Id === user?.jellyfinUserId) {
+        user = foundUser;
+    } else {
+      user = new User({
+        email: account.User.email ? account.User.email : account.User.name + "@fakeemail.com",
+        jellyfinUsername: account.User.Name,
+        jellyfinUserId: account.User.Id,
+        jellyfinDeviceId: "",
+        permissions: settings.main.defaultPermissions,
+        userType: UserType.JELLYFIN
+      });
+
+      user.setPassword('')
+      await userRepository.save(user);
+    }
   }
+
 
   if (user) {
     req.user = user;
