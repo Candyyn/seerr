@@ -1,5 +1,5 @@
 import {getRepository} from '@server/datasource';
-import {User} from '@server/entity/User';
+import { User } from '@server/entity/User';
 import type {
   Permission,
   PermissionCheckOptions,
@@ -7,6 +7,7 @@ import type {
 import {getSettings} from '@server/lib/settings';
 import JellyfinAPI from "@server/api/jellyfin";
 import {getHostname} from "@server/utils/getHostname";
+import { UserType } from '@server/constants/user';
 
 export const checkUser: Middleware = async (req, _res, next) => {
   const settings = getSettings();
@@ -31,6 +32,7 @@ export const checkUser: Middleware = async (req, _res, next) => {
     });
   } else if (req.header('X-Emby-Token')) {
     const token = req.header('X-Emby-Token');
+    const userRepository = getRepository(User);
 
     const hostname =
       settings.jellyfin.ip !== ''
@@ -39,16 +41,16 @@ export const checkUser: Middleware = async (req, _res, next) => {
     const jellyfinserver = new JellyfinAPI(hostname ?? '', token, "");
     const account = await jellyfinserver.getUser()
     const foundUser = await userRepository.findOne({
-      where: { jellyfinUserId: account.User.Id },
+      where: { jellyfinUserId: account.Id },
     });
 
-    if (account.User.Id === user?.jellyfinUserId) {
+    if (account.Id === user?.jellyfinUserId) {
         user = foundUser;
     } else {
       user = new User({
-        email: account.User.email ? account.User.email : account.User.name + "@fakeemail.com",
-        jellyfinUsername: account.User.Name,
-        jellyfinUserId: account.User.Id,
+        email: account.Name + "@fakeemail.com",
+        jellyfinUsername: account.Name,
+        jellyfinUserId: account.Id,
         jellyfinDeviceId: "",
         permissions: settings.main.defaultPermissions,
         userType: UserType.JELLYFIN
