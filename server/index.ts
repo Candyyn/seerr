@@ -149,6 +149,26 @@ app
     if (settings.network.trustProxy) {
       server.enable('trust proxy');
     }
+
+    server.use(
+      '/api/v1',
+      cors({
+        origin: '*', // or your frontend domain
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: [
+          'Content-Type',
+          'X-API-Key',
+          'X-API-User',
+          'X-Emby-Token',
+        ],
+        credentials: true,
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
+      })
+    );
+
+    // Optional: explicit OPTIONS handler (fallback)
+    server.options('/api/v1/*', (req, res) => res.sendStatus(204));
     server.use(cookieParser());
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
