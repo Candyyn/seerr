@@ -1,10 +1,10 @@
 import csurf from '@dr.pogodin/csurf';
 import PlexAPI from '@server/api/plexapi';
-import dataSource, { getRepository, isPgsql } from '@server/datasource';
+import dataSource, {getRepository, isPgsql} from '@server/datasource';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
-import { Session } from '@server/entity/Session';
-import { User } from '@server/entity/User';
-import { startJobs } from '@server/job/schedule';
+import {Session} from '@server/entity/Session';
+import {User} from '@server/entity/User';
+import {startJobs} from '@server/job/schedule';
 import notificationManager from '@server/lib/notifications';
 import DiscordAgent from '@server/lib/notifications/agents/discord';
 import EmailAgent from '@server/lib/notifications/agents/email';
@@ -16,25 +16,25 @@ import SlackAgent from '@server/lib/notifications/agents/slack';
 import TelegramAgent from '@server/lib/notifications/agents/telegram';
 import WebhookAgent from '@server/lib/notifications/agents/webhook';
 import WebPushAgent from '@server/lib/notifications/agents/webpush';
-import { getSettings } from '@server/lib/settings';
+import {getSettings} from '@server/lib/settings';
 import logger from '@server/logger';
 import clearCookies from '@server/middleware/clearcookies';
 import routes from '@server/routes';
 import avatarproxy from '@server/routes/avatarproxy';
 import imageproxy from '@server/routes/imageproxy';
-import { appDataPermissions } from '@server/utils/appDataVolume';
-import { getAppVersion } from '@server/utils/appVersion';
+import {appDataPermissions} from '@server/utils/appDataVolume';
+import {getAppVersion} from '@server/utils/appVersion';
 import createCustomProxyAgent from '@server/utils/customProxyAgent';
-import { initializeDnsCache } from '@server/utils/dnsCache';
+import {initializeDnsCache} from '@server/utils/dnsCache';
 import restartFlag from '@server/utils/restartFlag';
-import { getClientIp } from '@supercharge/request-ip';
+import {getClientIp} from '@supercharge/request-ip';
 import axios from 'axios';
-import { TypeormStore } from 'connect-typeorm/out';
+import {TypeormStore} from 'connect-typeorm/out';
 import cookieParser from 'cookie-parser';
-import type { NextFunction, Request, Response } from 'express';
+import type {NextFunction, Request, Response} from 'express';
 import express from 'express';
 import * as OpenApiValidator from 'express-openapi-validator';
-import type { Store } from 'express-session';
+import type {Store} from 'express-session';
 import session from 'express-session';
 import http from 'http';
 import https from 'https';
@@ -42,12 +42,13 @@ import next from 'next';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
+import cors from 'cors';
 
 const API_SPEC_PATH = path.join(__dirname, '../seerr-api.yml');
 
 logger.info(`Starting Seerr version ${getAppVersion()}`);
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
+const app = next({dev});
 const handle = app.getRequestHandler();
 
 if (!appDataPermissions()) {
@@ -77,8 +78,8 @@ app
     restartFlag.initializeSettings(settings);
 
     if (settings.network.forceIpv4First) {
-      axios.defaults.httpAgent = new http.Agent({ family: 4 });
-      axios.defaults.httpsAgent = new https.Agent({ family: 4 });
+      axios.defaults.httpAgent = new http.Agent({family: 4});
+      axios.defaults.httpsAgent = new https.Agent({family: 4});
     }
 
     // Add DNS caching
@@ -101,8 +102,8 @@ app
     ) {
       const userRepository = getRepository(User);
       const admin = await userRepository.findOne({
-        select: { id: true, plexToken: true },
-        where: { id: 1 },
+        select: {id: true, plexToken: true},
+        where: {id: 1},
       });
 
       if (admin) {
@@ -110,7 +111,7 @@ app
           label: 'Settings',
         });
 
-        const plexapi = new PlexAPI({ plexToken: admin.plexToken });
+        const plexapi = new PlexAPI({plexToken: admin.plexToken});
         await plexapi.syncLibraries();
       }
     }
@@ -151,7 +152,7 @@ app
     }
     server.use(cookieParser());
     server.use(express.json());
-    server.use(express.urlencoded({ extended: true }));
+    server.use(express.urlencoded({extended: true}));
     server.use((req, _res, next) => {
       try {
         const descriptor = Object.getOwnPropertyDescriptor(req, 'ip');
@@ -226,7 +227,13 @@ app
       };
       next();
     });
-    server.use('/api/v1', routes);
+    server.use('/api/v1',
+      cors({
+        origin: '*', // Or your frontend URL in production
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'X-API-Key', 'X-API-User', 'X-Emby-Token'],
+      }),
+      routes);
 
     // Do not set cookies so CDNs can cache them
     server.use('/imageproxy', clearCookies, imageproxy);
