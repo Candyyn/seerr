@@ -26,6 +26,7 @@ import {
 import { getAppVersion, getCommitTag } from '@server/utils/appVersion';
 import restartFlag from '@server/utils/restartFlag';
 import { isPerson } from '@server/utils/typeHelpers';
+import cors from 'cors';
 import { Router } from 'express';
 import authRoutes from './auth';
 import blacklistRoutes from './blacklist';
@@ -43,6 +44,18 @@ import tvRoutes from './tv';
 import user from './user';
 
 const router = Router();
+
+router.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-API-Key', 'X-API-User', 'X-Emby-Token'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  })
+);
+
+router.options('*', (req, res) => res.sendStatus(204));
 
 router.use(checkUser);
 
@@ -100,10 +113,6 @@ router.get('/status/appdata', (_req, res) => {
     appDataPath: appDataPath(),
     appDataPermissions: appDataPermissions(),
   });
-});
-
-router.options('*', (req, res) => {
-  res.sendStatus(204);
 });
 
 router.use('/user', isAuthenticated(), user);
