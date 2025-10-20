@@ -229,6 +229,8 @@ app
           'X-API-User',
           'X-Emby-Token',
         ],
+        preflightContinue: false,
+        optionsSuccessStatus: 204,
       }),
       routes
     );
