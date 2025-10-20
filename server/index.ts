@@ -155,12 +155,6 @@ app
       cors({
         origin: '*', // or your frontend domain
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: [
-          'Content-Type',
-          'X-API-Key',
-          'X-API-User',
-          'X-Emby-Token',
-        ],
         credentials: true,
         preflightContinue: false,
         optionsSuccessStatus: 204,
