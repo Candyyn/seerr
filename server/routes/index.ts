@@ -102,6 +102,10 @@ router.get('/status/appdata', (_req, res) => {
   });
 });
 
+router.options('*', (req, res) => {
+  res.sendStatus(204);
+});
+
 router.use('/user', isAuthenticated(), user);
 router.get('/settings/public', async (req, res) => {
   const settings = getSettings();
