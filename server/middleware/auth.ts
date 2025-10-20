@@ -13,6 +13,11 @@ export const checkUser: Middleware = async (req, _res, next) => {
   const settings = getSettings();
   let user: User | undefined | null;
 
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Or your frontend domain instead of '*'
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, X-API-User, X-Emby-Token');
+
+
   if (req.header('X-API-Key') === settings.main.apiKey) {
     const userRepository = getRepository(User);
 
