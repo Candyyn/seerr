@@ -45,6 +45,8 @@ import user from './user';
 
 const router = Router();
 
+router.use(checkUser);
+
 router.use(
   cors({
     origin: '*',
@@ -56,8 +58,6 @@ router.use(
 );
 
 router.options('*', (req, res) => res.sendStatus(204));
-
-router.use(checkUser);
 
 router.get<unknown, StatusResponse>('/status', async (req, res) => {
   const githubApi = new GithubAPI();

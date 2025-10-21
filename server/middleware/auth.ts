@@ -1,22 +1,17 @@
-import {getRepository} from '@server/datasource';
+import JellyfinAPI from '@server/api/jellyfin';
+import { UserType } from '@server/constants/user';
+import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
 import type {
   Permission,
   PermissionCheckOptions,
 } from '@server/lib/permissions';
-import {getSettings} from '@server/lib/settings';
-import JellyfinAPI from "@server/api/jellyfin";
-import {getHostname} from "@server/utils/getHostname";
-import { UserType } from '@server/constants/user';
+import { getSettings } from '@server/lib/settings';
+import { getHostname } from '@server/utils/getHostname';
 
 export const checkUser: Middleware = async (req, _res, next) => {
   const settings = getSettings();
   let user: User | undefined | null;
-
-  _res.setHeader('Access-Control-Allow-Origin', '*'); // Or your frontend domain instead of '*'
-  _res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  _res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, X-API-User, X-Emby-Token');
-
 
   if (req.header('X-API-Key') === settings.main.apiKey) {
     const userRepository = getRepository(User);
@@ -28,47 +23,47 @@ export const checkUser: Middleware = async (req, _res, next) => {
       userId = Number(req.header('X-API-User'));
     }
 
-    user = await userRepository.findOne({where: {id: userId}});
+    user = await userRepository.findOne({ where: { id: userId } });
   } else if (req.session?.userId) {
     const userRepository = getRepository(User);
 
     user = await userRepository.findOne({
-      where: {id: req.session.userId},
+      where: { id: req.session.userId },
     });
   } else if (req.header('X-Emby-Token')) {
+    console.log('EMBY TOKEN');
     const token = req.header('X-Emby-Token');
     const userRepository = getRepository(User);
 
-    const hostname =
-      settings.jellyfin.ip !== ''
-        ? getHostname() : '';
+    const hostname = settings.jellyfin.ip !== '' ? getHostname() : '';
 
-    const jellyfinserver = new JellyfinAPI(hostname ?? '', token, "");
-    const account = await jellyfinserver.getUser()
+    const jellyfinserver = new JellyfinAPI(hostname ?? '', token, '');
+    const account = await jellyfinserver.getUser();
+    console.log('account', account);
     const foundUser = await userRepository.findOne({
       where: { jellyfinUserId: account.Id },
     });
 
-    if (account.Id === user?.jellyfinUserId) {
-        user = foundUser;
+    if (account.Id === foundUser?.jellyfinUserId) {
+      user = foundUser;
     } else {
       user = new User({
-        email: account.Name + "@fakeemail.com",
+        email: account.Name + '@fakeemail.com',
         jellyfinUsername: account.Name,
         jellyfinUserId: account.Id,
-        jellyfinDeviceId: "",
+        jellyfinDeviceId: '',
         permissions: settings.main.defaultPermissions,
-        userType: UserType.JELLYFIN
+        userType: UserType.JELLYFIN,
       });
 
-      user.setPassword('')
+      user.setPassword('');
       await userRepository.save(user);
     }
   }
 
-
   if (user) {
     req.user = user;
+    console.log('USER FOUND', user);
   }
 
   req.locale = user?.settings?.locale
