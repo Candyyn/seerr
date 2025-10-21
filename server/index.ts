@@ -34,7 +34,6 @@ import cors from 'cors';
 import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
 import * as OpenApiValidator from 'express-openapi-validator';
-import type { Store } from 'express-session';
 import session from 'express-session';
 import http from 'http';
 import https from 'https';
@@ -197,6 +196,33 @@ app
      * OpenAPI validator. Otherwise, they are treated as objects instead of strings
      * and response validation will fail
      */
+
+    const sessionRespository = getRepository(Session);
+    const apiSession = session({
+      secret: settings.clientId,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+        httpOnly: true,
+        sameSite: settings.network.csrfProtection ? 'strict' : 'lax',
+        secure: 'auto',
+      },
+      store: new TypeormStore({
+        cleanupLimit: 2,
+        ttl: 60 * 60 * 24 * 30,
+      }).connect(sessionRespository),
+    });
+    server.use('/api', (req, res, next) => {
+      if (req.header('X-Emby-Token')) {
+        // Skip session if header is present
+        return next();
+      } else {
+        // Apply session middleware
+        return apiSession(req, res, next);
+      }
+    });
+
     server.use((_req, res, next) => {
       const original = res.json;
       res.json = function jsonp(json) {
@@ -216,25 +242,7 @@ app
     );
 
     // Set up sessions
-    const sessionRespository = getRepository(Session);
-    server.use(
-      '/api',
-      session({
-        secret: settings.clientId,
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          maxAge: 1000 * 60 * 60 * 24 * 30,
-          httpOnly: true,
-          sameSite: settings.network.csrfProtection ? 'strict' : 'lax',
-          secure: 'auto',
-        },
-        store: new TypeormStore({
-          cleanupLimit: 2,
-          ttl: 60 * 60 * 24 * 30,
-        }).connect(sessionRespository) as Store,
-      })
-    );
+
     const apiDocs = YAML.load(API_SPEC_PATH);
     server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocs));
     server.use(

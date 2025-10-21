@@ -204,6 +204,9 @@ authRoutes.post('/plex', async (req, res, next) => {
     if (req.session) {
       req.session.userId = user.id;
     }
+    if (!req.user) {
+      req.user = user;
+    }
 
     return res.status(200).json(user?.filter() ?? {});
   } catch (e) {
@@ -502,6 +505,8 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
         });
       }
     }
+
+    console.log('TESTING');
 
     // Set logged in session
     if (req.session) {

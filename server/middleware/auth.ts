@@ -31,7 +31,6 @@ export const checkUser: Middleware = async (req, _res, next) => {
       where: { id: req.session.userId },
     });
   } else if (req.header('X-Emby-Token')) {
-    console.log('EMBY TOKEN');
     const token = req.header('X-Emby-Token');
     const userRepository = getRepository(User);
 
@@ -39,7 +38,6 @@ export const checkUser: Middleware = async (req, _res, next) => {
 
     const jellyfinserver = new JellyfinAPI(hostname ?? '', token, '');
     const account = await jellyfinserver.getUser();
-    console.log('account', account);
     const foundUser = await userRepository.findOne({
       where: { jellyfinUserId: account.Id },
     });
@@ -63,7 +61,6 @@ export const checkUser: Middleware = async (req, _res, next) => {
 
   if (user) {
     req.user = user;
-    console.log('USER FOUND', user);
   }
 
   req.locale = user?.settings?.locale
